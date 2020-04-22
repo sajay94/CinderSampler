@@ -4,17 +4,34 @@
 #define FINALPROJECT_APPS_MYAPP_H_
 
 #include <cinder/app/App.h>
+#include <cinder/audio/audio.h>
+#include "../../../samples/_audio/BufferPlayer/include/Resources.h"
+#include <../../../samples/_audio/common/AudioDrawUtils.h>
 
+using namespace ci;
+using namespace ci::app;
+using namespace std;
 
 namespace myapp {
 
-class MyApp : public cinder::app::App {
+class AudioAligner : public cinder::app::App {
  public:
-  MyApp();
-  void setup() override;
-  void update() override;
-  void draw() override;
-  void keyDown(cinder::app::KeyEvent) override;
+    AudioAligner();
+    void setup() override;
+    void resize() override;
+    void fileDrop( FileDropEvent event ) override;
+    void keyDown( KeyEvent event ) override;
+    void mouseDown( MouseEvent event ) override;
+    void mouseDrag( MouseEvent event ) override;
+    void draw() override;
+
+    audio::GainNodeRef				mGain;
+    audio::BufferPlayerNodeRef		mBufferPlayerNode;
+
+    WaveformPlot				mWaveformPlot;
+
+ private:
+    cinder::audio::VoiceRef guide_audio_;
 };
 
 }  // namespace myapp
