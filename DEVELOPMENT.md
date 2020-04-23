@@ -4,7 +4,7 @@
    
    [x] Create basic BufferPlayer from sample
    
-   [ ] Integrate rubber band library with CMake
+   [ ] Integrate AudioUnit cinderblock
    
    [ ] 
 ---

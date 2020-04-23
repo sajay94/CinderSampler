@@ -141,6 +141,8 @@ _deps
 # External projects
 *-prefix/
 
+./assets
+
 # End of https://www.gitignore.io/api/c++,cmake,clion
 
 # Don't track database files.

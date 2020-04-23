@@ -3,6 +3,7 @@
 
 # Use Cinder CMake macros.
 get_filename_component(CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../" ABSOLUTE)
+get_filename_component(RUBBERBAND_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../rubberband-lib/" ABSOLUTE)
 include("${CINDER_PATH}/proj/cmake/modules/cinderMakeApp.cmake")
 include("${FinalProject_SOURCE_DIR}/cmake/make_cinder_library.cmake")
 
@@ -14,6 +15,12 @@ file(GLOB SOURCE_LIST CONFIGURE_DEPENDS
         "${FinalProject_SOURCE_DIR}/src/*.cpp")
 
 
+find_library(CARBON Carbon)
+find_library(COREAUDIOKIT CoreAudioKit)
+find_library(COREMIDI CoreMidi)
+
+SET(FRAMEWORKS ${CARBON} ${COREAUDIOKIT} ${COREMIDI})
+
 ci_make_library(
         LIBRARY_NAME mylibrary
         CINDER_PATH  ${CINDER_PATH}
@@ -22,6 +29,8 @@ ci_make_library(
         LIBRARIES
         BLOCKS
 )
+
+
 
 # All users of this library will need at least C++14
 target_compile_features(mylibrary PUBLIC cxx_std_14)

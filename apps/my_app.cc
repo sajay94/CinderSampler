@@ -5,15 +5,23 @@
 #include <cinder/app/App.h>
 #include <cinder/gl/gl.h>
 #include <cinder/audio/audio.h>
-#include "../resources/Resources.h"
+
+
+#include "cinder/audio/Source.h"
+#include "cinder/audio/Target.h"
+
+#include "AudioUnit/AudioUnit.h"
 
 
 namespace myapp {
 
 
+
 using namespace ci;
 using namespace ci::app;
 using namespace std;
+using namespace au;
+
 
 AudioAligner::AudioAligner() { }
 
@@ -23,11 +31,16 @@ void AudioAligner::setup() {
 
     auto ctx = audio::Context::master();
 
+    //AudioUnit demo
+    reverb = au::GenericUnit(kAudioUnitType_Effect, kAudioUnitSubType_MatrixReverb);
+    speechSynth.connectTo(reverb).connectTo(tap).connectTo(mixer).connectTo(output);
+    output.start();
+
     // create a SourceFile and set its output samplerate to match the Context.
-    audio::SourceFileRef sourceFile = audio::load( app::loadAsset("tasty burger.mp3"), ctx->getSampleRate() );
+    mSourceFile = audio::load( app::loadAsset("tasty burger.mp3"), ctx->getSampleRate() );
 
     // load the entire sound file into a BufferRef, and construct a BufferPlayerNode with this.
-    audio::BufferRef buffer = sourceFile->loadBuffer();
+    audio::BufferRef buffer = mSourceFile->loadBuffer();
     mBufferPlayerNode = ctx->makeNode( new audio::BufferPlayerNode( buffer ) );
 
     // add a Gain to reduce the volume
@@ -56,18 +69,20 @@ void AudioAligner::keyDown(KeyEvent event) {
             mBufferPlayerNode->stop();
         else
             mBufferPlayerNode->start();
-    }
+    } else if( event.getCode() == KeyEvent::KEY_w )
+        this->exportFile();
 }
 
 void AudioAligner::fileDrop(FileDropEvent event) {
     fs::path filePath = event.getFile( 0 );
     getWindow()->setTitle( filePath.filename().string() );
 
-    audio::SourceFileRef sourceFile = audio::load( loadFile( filePath ) );
+    mSourceFile.reset();
+    mSourceFile = audio::load( loadFile( filePath ) );
 
     // BufferPlayerNode can also load a buffer directly from the SourceFile.
     // This is safe to call on a background thread, which would alleviate blocking the UI loop.
-    mBufferPlayerNode->loadBuffer( sourceFile );
+    mBufferPlayerNode->loadBuffer( mSourceFile );
 
     mWaveformPlot.load( mBufferPlayerNode->getBuffer(), getWindowBounds() );
 }
@@ -81,9 +96,26 @@ void AudioAligner::resize() {
     if( mBufferPlayerNode )
         mWaveformPlot.load( mBufferPlayerNode->getBuffer(), bounds);
 }
+void AudioAligner::exportFile() {
+    audio::BufferRef audioBuffer = mSourceFile->loadBuffer();
+
+    try {
+        const fs::path fileName = "/Users/family/Cinder/Projects/final-project-sajay94/assets/out2.wav";
+        audio::TargetFileRef target = audio::TargetFile::create( fileName, mSourceFile->getSampleRate(), mSourceFile->getNumChannels() ); // INT_16
+        //	audio::TargetFileRef target = audio::TargetFile::create( fileName, mSourceFile->getSampleRate(), mSourceFile->getNumChannels(), audio::SampleType::FLOAT_32 );
+
+        target->write( audioBuffer.get() );
+
+        }
+    catch( audio::AudioFileExc &exc ) {
+        throw exc;
+    }
+}
 
 void AudioAligner::mouseDown(MouseEvent event) {
-    mBufferPlayerNode->start();
+    //mBufferPlayerNode->start();
+    std::string hello("Hello!");
+    speechSynth.say(hello);
 }
 
 void AudioAligner::mouseDrag(MouseEvent event) {
