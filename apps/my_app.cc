@@ -11,6 +11,7 @@
 #include "cinder/audio/Target.h"
 
 #include "AudioUnit/AudioUnit.h"
+#include "cmath"
 
 
 namespace myapp {
@@ -23,17 +24,13 @@ using namespace std;
 using namespace au;
 
 
-AudioAligner::AudioAligner() { }
-
-void AudioAligner::setup() {
-    cinder::gl::enableDepthWrite();
-    cinder::gl::enableDepthRead();
-
+AudioAligner::AudioAligner() {
     auto ctx = audio::Context::master();
 
     //AudioUnit demo
     reverb = au::GenericUnit(kAudioUnitType_Effect, kAudioUnitSubType_MatrixReverb);
-    speechSynth.connectTo(reverb).connectTo(tap).connectTo(mixer).connectTo(output);
+    fileToPlay.setFile(app::loadAsset("out2.wav"));
+    fileToPlay.connectTo(reverb).connectTo(tap).connectTo(mixer).connectTo(output);
     output.start();
 
     // create a SourceFile and set its output samplerate to match the Context.
@@ -42,7 +39,11 @@ void AudioAligner::setup() {
     // load the entire sound file into a BufferRef, and construct a BufferPlayerNode with this.
     audio::BufferRef buffer = mSourceFile->loadBuffer();
     mBufferPlayerNode = ctx->makeNode( new audio::BufferPlayerNode( buffer ) );
+    mBufferPlayerNode->setLoopEnabled();
 
+
+    start.setUp(0, mBufferPlayerNode->getNumFrames());
+    end.setUp(mBufferPlayerNode->getNumFrames(), mBufferPlayerNode->getNumFrames());
     // add a Gain to reduce the volume
     mGain = ctx->makeNode( new audio::GainNode( 0.5f ) );
 
@@ -51,24 +52,54 @@ void AudioAligner::setup() {
     ctx->enable();
 }
 
+void AudioAligner::setup() {
+    cinder::gl::enableDepthWrite();
+    cinder::gl::enableDepthRead();
+}
+
 void AudioAligner::draw() {
     gl::clear();
     gl::enableAlphaBlending();
 
-    mWaveformPlot.draw();
+    drawAudioPlayer();
+    start.draw();
+    end.draw();
+
+}
+void AudioAligner::drawAudioPlayer() {
+    gl::setMatricesWindow( getWindowSize());
+    const Rectf size(50, 100, 750, 300);
+    gl::color( ColorA( 0, 1, 0, 0.7f ) );
+    gl::drawStrokedRect(size);
+    mWaveformPlot.load( mBufferPlayerNode->getBuffer(), size );
+    mWaveformPlot.draw(50, 100);
 
     // draw the current play position
-    float readPos = (float)getWindowWidth() * mBufferPlayerNode->getReadPosition() / mBufferPlayerNode->getNumFrames();
+    float readPos = (.875) * (float)getWindowWidth() * mBufferPlayerNode->getReadPosition() / mBufferPlayerNode->getNumFrames();
     gl::color( ColorA( 0, 1, 0, 0.7f ) );
-    gl::drawSolidRect( Rectf( readPos - 2, 0, readPos + 2, (float)getWindowHeight() ) );
-}
+    gl::drawSolidRect( Rectf( readPos - 2, 0, readPos + 2, 200 ) );
+
+
+//    float readPos = (.875) * (float)getWindowWidth() * mBufferPlayerNode->getReadPosition() / mBufferPlayerNode->getNumFrames();
+//    gl::color( ColorA( 0, 1, 0, 0.7f ) );
+//    gl::drawSolidRect( Rectf( readPos - 2, 0, readPos + 2, 200 ) );
+
+//        if (currentState == importDubAudio) {
+//            for (size_t elem : timeStamps ) {
+//                float readPos = (.875) * (float)getWindowWidth() * elem / mBufferPlayerNode->getNumFrames();
+//                gl::color( ColorA( 1, .6, 0, 0.7f ) );
+//                gl::drawSolidRect( Rectf( readPos - 2, 0, readPos + 2, 200 ) );
+//            }
+//        }
+    }
 
 void AudioAligner::keyDown(KeyEvent event) {
     if( event.getCode() == KeyEvent::KEY_SPACE ) {
         if( mBufferPlayerNode->isEnabled() )
             mBufferPlayerNode->stop();
         else
-            mBufferPlayerNode->start();
+            mBufferPlayerNode->setLoopBegin(start.currentPosition);
+            mBufferPlayerNode->start(mBufferPlayerNode->getLoopBeginTime());
     } else if( event.getCode() == KeyEvent::KEY_w )
         this->exportFile();
 }
@@ -114,13 +145,32 @@ void AudioAligner::exportFile() {
 
 void AudioAligner::mouseDown(MouseEvent event) {
     //mBufferPlayerNode->start();
-    std::string hello("Hello!");
-    speechSynth.say(hello);
+//    std::string hello("Hello!");
+//    speechSynth.say(hello);
+    if (abs(event.getX() - start.getXPosition()) < 5) {
+        moveStart = true;
+    } else if (abs(event.getX() - end.getXPosition()) < 5) {
+        moveEnd = true;
+    }
 }
 
 void AudioAligner::mouseDrag(MouseEvent event) {
     if( mBufferPlayerNode->isEnabled() )
         mBufferPlayerNode->seek( mBufferPlayerNode->getNumFrames() * event.getX() / getWindowWidth() );
+}
+
+void AudioAligner::mouseUp(MouseEvent event) {
+    if (moveStart) {
+        size_t frame = event.getX() * mBufferPlayerNode->getNumFrames() / ((float (8/7)) * getWindowWidth());
+        start.setPosition(frame);
+        mBufferPlayerNode->setLoopBegin(start.currentPosition);
+        moveStart = false;
+    } else if (moveEnd) {
+        size_t frame = event.getX() * mBufferPlayerNode->getNumFrames() / ((float (8/7)) * getWindowWidth());
+        end.setPosition(frame);
+        mBufferPlayerNode->setLoopEnd(end.currentPosition);
+        moveEnd = false;
+    }
 }
 
 }  // namespace myapp

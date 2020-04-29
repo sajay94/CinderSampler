@@ -9,7 +9,7 @@
 #include <../../../samples/_audio/common/AudioDrawUtils.h>
 
 #include "../../../blocks/AudioUnit/include/AudioUnit.h"
-
+#include "../src/audio_bound.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -28,16 +28,23 @@ class AudioAligner : public cinder::app::App {
     void keyDown( KeyEvent event ) override;
     void mouseDown( MouseEvent event ) override;
     void mouseDrag( MouseEvent event ) override;
+    void mouseUp( MouseEvent event ) override;
     void draw() override;
+    void drawAudioPlayer();
 
     GainNodeRef	mGain;
     BufferPlayerNodeRef mBufferPlayerNode;
     SourceFileRef mSourceFile;
+    myapp::AudioBound start = AudioBound();
+    myapp::AudioBound end = AudioBound();
+    bool moveStart = false;
+    bool moveEnd = false;
 
     au::GenericUnit reverb;
     au::SpeechSynth speechSynth;
     au::Mixer mixer;
     au::Output output;
+    au::FilePlayer fileToPlay;
     au::Tap tap;
     WaveformPlot mWaveformPlot;
 
