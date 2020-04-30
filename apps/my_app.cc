@@ -7,6 +7,7 @@
 #include <cinder/audio/audio.h>
 
 
+
 #include "cinder/audio/Source.h"
 #include "cinder/audio/Target.h"
 
@@ -23,15 +24,17 @@ using namespace ci::app;
 using namespace std;
 using namespace au;
 
+const fs::path kOutputFileName = "/Users/family/Cinder/Projects/final-project-sajay94-sampler/assets/crazy-808.wav";
+const fs::path kMp3FileName = "/Users/family/Cinder/Projects/final-project-sajay94-sampler/assets/deepbark.mp3";
 
 AudioAligner::AudioAligner() {
     auto ctx = audio::Context::master();
 
     //AudioUnit demo
-    reverb = au::GenericUnit(kAudioUnitType_Effect, kAudioUnitSubType_MatrixReverb);
-    fileToPlay.setFile(app::loadAsset("out2.wav"));
-    fileToPlay.connectTo(reverb).connectTo(tap).connectTo(mixer).connectTo(output);
-    output.start();
+//    reverb = au::GenericUnit(kAudioUnitType_Effect, kAudioUnitSubType_MatrixReverb);
+//    fileToPlay.setFile(app::loadAsset("out2.wav"));
+//    fileToPlay.connectTo(reverb).connectTo(tap).connectTo(mixer).connectTo(output);
+//    output.start();
 
     // create a SourceFile and set its output samplerate to match the Context.
     mSourceFile = audio::load( app::loadAsset("tasty burger.mp3"), ctx->getSampleRate() );
@@ -61,10 +64,16 @@ void AudioAligner::draw() {
     gl::clear();
     gl::enableAlphaBlending();
 
-    drawAudioPlayer();
-    start.draw();
-    end.draw();
-
+    if (isSampleSelected) {
+        sample.update();
+        gl::color( ColorA( 0, 1, 0, 0.7f ) );
+        const cinder::PolyLine2 poly = drawSample();
+        gl::draw(poly);
+    } else {
+        drawAudioPlayer();
+        start.draw();
+        end.draw();
+    }
 }
 void AudioAligner::drawAudioPlayer() {
     gl::setMatricesWindow( getWindowSize());
@@ -94,18 +103,59 @@ void AudioAligner::drawAudioPlayer() {
     }
 
 void AudioAligner::keyDown(KeyEvent event) {
-    if( event.getCode() == KeyEvent::KEY_SPACE ) {
+    if( event.getCode() == KeyEvent::KEY_SPACE && !isSampleSelected) {
         if( mBufferPlayerNode->isEnabled() )
             mBufferPlayerNode->stop();
         else
             mBufferPlayerNode->setLoopBegin(start.currentPosition);
             mBufferPlayerNode->start(mBufferPlayerNode->getLoopBeginTime());
-    } else if( event.getCode() == KeyEvent::KEY_w )
-        this->exportFile();
+    } else if( event.getCode() == KeyEvent::KEY_w ) {
+        setUpSample();
+        setSample();
+    } else if( event.getCode() == KeyEvent::KEY_p ) {
+        //reverb.showUI("Reverb");
+        fileToPlay.play(0);
+    } else if( event.getCode() == KeyEvent::KEY_UP ) {
+        mixer.setInputVolume(.1, 0);
+        std::cout << mixer.getInputLevel(0) << std::endl;
+    } else if( event.getCode() == KeyEvent::KEY_DOWN ) {
+        mixer.setInputVolume(1, 0);
+        std::cout << mixer.getInputLevel(0) << std::endl;
+    } else if( event.getCode() == KeyEvent::KEY_r ) {
+        if (!isDistortionOn) {
+            if (isReverbOn) {
+                fileToPlay.connectTo(tap).connectTo(mixer, 0).connectTo(output);
+            } else {
+                fileToPlay.connectTo(reverb).connectTo(tap).connectTo(mixer, 0).connectTo(output);
+            }
+        } else {
+            if (isReverbOn) {
+                fileToPlay.connectTo(distortion).connectTo(tap).connectTo(mixer, 0).connectTo(output);
+            } else {
+                fileToPlay.connectTo(distortion).connectTo(reverb).connectTo(tap).connectTo(mixer, 0).connectTo(output);
+            }
+        }
+        isReverbOn = !isReverbOn;
+    } else if( event.getCode() == KeyEvent::KEY_d ) {
+        if (!isReverbOn) {
+            if (isDistortionOn) {
+                fileToPlay.connectTo(tap).connectTo(mixer, 0).connectTo(output);
+            } else {
+                fileToPlay.connectTo(distortion).connectTo(tap).connectTo(mixer, 0).connectTo(output);
+            }
+        } else {
+            if (isDistortionOn) {
+                fileToPlay.connectTo(reverb).connectTo(tap).connectTo(mixer, 0).connectTo(output);
+            } else {
+                fileToPlay.connectTo(distortion).connectTo(reverb).connectTo(tap).connectTo(mixer, 0).connectTo(output);
+            }
+        }
+        isDistortionOn = !isDistortionOn;
+    }
 }
 
 void AudioAligner::fileDrop(FileDropEvent event) {
-    fs::path filePath = event.getFile( 0 );
+    const fs::path& filePath = event.getFile( 0 );
     getWindow()->setTitle( filePath.filename().string() );
 
     mSourceFile.reset();
@@ -114,6 +164,9 @@ void AudioAligner::fileDrop(FileDropEvent event) {
     // BufferPlayerNode can also load a buffer directly from the SourceFile.
     // This is safe to call on a background thread, which would alleviate blocking the UI loop.
     mBufferPlayerNode->loadBuffer( mSourceFile );
+    start.setUp(0, mBufferPlayerNode->getNumFrames());
+    end.setUp(mBufferPlayerNode->getNumFrames(), mBufferPlayerNode->getNumFrames());
+    //mBufferPlayerNode->setLoopEnabled();
 
     mWaveformPlot.load( mBufferPlayerNode->getBuffer(), getWindowBounds() );
 }
@@ -127,20 +180,34 @@ void AudioAligner::resize() {
     if( mBufferPlayerNode )
         mWaveformPlot.load( mBufferPlayerNode->getBuffer(), bounds);
 }
-void AudioAligner::exportFile() {
-    audio::BufferRef audioBuffer = mSourceFile->loadBuffer();
+void AudioAligner::setUpSample() {
+
+    audio::BufferRef audioBuffer = mBufferPlayerNode->getBuffer();
+    audio::BufferRef buf = mBufferPlayerNode->getBuffer();
+
+    audioBuffer->copyOffset(*buf, end.currentPosition - start.currentPosition, 0, start.currentPosition);
 
     try {
-        const fs::path fileName = "/Users/family/Cinder/Projects/final-project-sajay94/assets/out2.wav";
-        audio::TargetFileRef target = audio::TargetFile::create( fileName, mSourceFile->getSampleRate(), mSourceFile->getNumChannels() ); // INT_16
+        audio::TargetFileRef target = audio::TargetFile::create( kOutputFileName, mSourceFile->getSampleRate(), mSourceFile->getNumChannels() ); // INT_16
         //	audio::TargetFileRef target = audio::TargetFile::create( fileName, mSourceFile->getSampleRate(), mSourceFile->getNumChannels(), audio::SampleType::FLOAT_32 );
 
-        target->write( audioBuffer.get() );
-
+        target->write( audioBuffer.get(), end.currentPosition - start.currentPosition);
+        isSampleSelected = true;
+        //sample.setup(kMp3FileName);
         }
     catch( audio::AudioFileExc &exc ) {
         throw exc;
     }
+}
+
+void AudioAligner::setSample() {
+    mixer.setInputBusCount(1);
+    reverb = au::GenericUnit(kAudioUnitType_Effect, kAudioUnitSubType_MatrixReverb);
+    distortion = au::GenericUnit(kAudioUnitType_Effect, kAudioUnitSubType_Distortion);
+    fileToPlay.setFile(kOutputFileName);
+    fileToPlay.connectTo(reverb).connectTo(distortion).connectTo(tap).connectTo(mixer, 0).connectTo(output);
+    output.start();
+    tap.getSamples(tapBuffer);
 }
 
 void AudioAligner::mouseDown(MouseEvent event) {
@@ -172,5 +239,37 @@ void AudioAligner::mouseUp(MouseEvent event) {
         moveEnd = false;
     }
 }
+
+void AudioAligner::update() {
+    if (isSampleSelected) {
+        //sample.update();
+        tap.getSamples(tapBuffer);
+    }
+}
+
+PolyLine2 AudioAligner::drawSample() {
+    int width = 700;
+    int height = 200;
+    // Taken from Cinder-AudioUnit samples :
+    // https://github.com/admsyn/Cinder-AudioUnit/blob/master/samples/auComplexRouting/src/auComplexRoutingApp.cpp
+    PolyLine2f waveform;
+
+    if(!tapBuffer.empty()) {
+        waveform.getPoints().reserve(tapBuffer.size());
+
+        const float xStep = width / (float)tapBuffer.size();
+
+        for(int i = 0; i < tapBuffer.size(); i++) {
+            float x = i * xStep;
+            float y = tapBuffer[i] * (height / 2.f) + (height / 2.f);
+            ci::vec2 newPoint(x, y);
+            //std::cout << tapBuffer[i] << std::endl;
+            waveform.push_back(newPoint);
+        }
+    }
+
+    return waveform;
+}
+
 
 }  // namespace myapp

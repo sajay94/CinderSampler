@@ -10,6 +10,7 @@
 
 #include "../../../blocks/AudioUnit/include/AudioUnit.h"
 #include "../src/audio_bound.h"
+#include "../src/sample_controller.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -23,33 +24,40 @@ class AudioAligner : public cinder::app::App {
     AudioAligner();
     void setup() override;
     void resize() override;
+    void update() override;
     void fileDrop( FileDropEvent event ) override;
-    void exportFile();
+    void setUpSample();
+    void setSample();
     void keyDown( KeyEvent event ) override;
     void mouseDown( MouseEvent event ) override;
     void mouseDrag( MouseEvent event ) override;
     void mouseUp( MouseEvent event ) override;
     void draw() override;
     void drawAudioPlayer();
+    PolyLine2 drawSample();
 
-    GainNodeRef	mGain;
     BufferPlayerNodeRef mBufferPlayerNode;
     SourceFileRef mSourceFile;
+    WaveformPlot mWaveformPlot;
     myapp::AudioBound start = AudioBound();
     myapp::AudioBound end = AudioBound();
     bool moveStart = false;
     bool moveEnd = false;
+    SampleController sample = SampleController();
+    bool isSampleSelected = false;
+    bool isReverbOn = true;
+    bool isDistortionOn = true;
+    GainNodeRef	mGain;
 
     au::GenericUnit reverb;
-    au::SpeechSynth speechSynth;
+    au::GenericUnit distortion;
     au::Mixer mixer;
     au::Output output;
     au::FilePlayer fileToPlay;
     au::Tap tap;
-    WaveformPlot mWaveformPlot;
+    au::TapSampleBuffer tapBuffer;
 
- private:
-    cinder::audio::VoiceRef guide_audio_;
+
 };
 
 }  // namespace myapp

@@ -27,7 +27,7 @@ ci_make_library(
         SOURCES      ${SOURCE_LIST}
         INCLUDES     "${FinalProject_SOURCE_DIR}/include"
         LIBRARIES
-        BLOCKS
+        BLOCKS       AudioUnit
 )
 
 
