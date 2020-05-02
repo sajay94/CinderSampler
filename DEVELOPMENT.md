@@ -34,11 +34,19 @@
     
   - **4/30**
   
-    [ ] Adding panning and volume sliders
+        IMPORTANT Changing library to Cinder-UI
+        
+    [X] Integrated Cinder-UI
+        
+    [X] Adding panning and volume sliders
+   
+  - **5/1**
+  
+    [X] Remove AudioUnit library
     
-    [ ] Implement sample_controller to access and modify a single sample
+    [X] Implement sample_controller to access and modify a single sample
     
-    [ ] Use AudioUnits Library to adjust compression, distortion, gain, reverb, and panning
+    [ ] Adjust compression, distortion, gain, reverb, and panning from SampleController
     
     
 ---

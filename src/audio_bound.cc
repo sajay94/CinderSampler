@@ -1,14 +1,8 @@
 
-#include "audio_bound.h"
+#include "mylibrary/audio_bound.h"
 #include <cinder/app/App.h>
 #include <cinder/gl/gl.h>
-#include <cinder/audio/audio.h>
 
-
-#include "cinder/audio/Source.h"
-#include "cinder/audio/Target.h"
-
-#include "AudioUnit/AudioUnit.h"
 
 
 namespace myapp {
@@ -16,7 +10,6 @@ namespace myapp {
     using namespace ci;
     using namespace ci::app;
     using namespace std;
-    using namespace au;
 
     AudioBound::AudioBound() {}
     void AudioBound::setUp(size_t frame, size_t frames) {
@@ -27,13 +20,13 @@ namespace myapp {
         currentPosition = frame;
     }
     void AudioBound::draw() {
-        float readPos = (.875) * (float)getWindowWidth() * currentPosition / numFrames;
+        float readPos = kWidgetToWindowRatio * (float)getWindowWidth() * currentPosition / numFrames;
         gl::color( ColorA( 1, .6, 0, 0.7f ) );
-        gl::drawSolidRect( Rectf( readPos - 2, 0, readPos + 2, 200 ) );
+        gl::drawSolidRect( Rectf( readPos - 2, 0, readPos + 2, 100 ) );
     }
 
     int AudioBound::getXPosition() {
-        float xPos = (.875) * (float)getWindowWidth() * currentPosition / numFrames;
+        float xPos = kWidgetToWindowRatio * (float)getWindowWidth() * currentPosition / numFrames;
         return xPos + 50;
     }
 }

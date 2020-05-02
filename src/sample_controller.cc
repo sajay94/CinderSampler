@@ -1,5 +1,5 @@
 
-#include "sample_controller.h"
+#include "mylibrary/sample_controller.h"
 
 #include <cinder/app/App.h>
 #include <cinder/gl/gl.h>
@@ -9,7 +9,6 @@
 #include "cinder/audio/Source.h"
 #include "cinder/audio/Target.h"
 
-#include "AudioUnit/AudioUnit.h"
 
 
 namespace myapp {
@@ -17,52 +16,40 @@ namespace myapp {
     using namespace ci;
     using namespace ci::app;
     using namespace std;
-    using namespace au;
 
     SampleController::SampleController() {
 
     }
 
-    void SampleController::setup(const fs::path asset) {
-        fileToPlay.setFile(app::loadAsset("out2.wav"));
-        reverb = au::GenericUnit(kAudioUnitType_Effect, kAudioUnitSubType_MatrixReverb);
-        fileToPlay.connectTo(reverb).connectTo(tap).connectTo(mixer).connectTo(output);
-        fileToPlay.loop(1, 0);
-        output.start();
+    void SampleController::setup(fs::path asset) {
+        auto ctx = audio::Context::master();
+        mSourceFile = audio::load( app::loadAsset("out0.wav"), ctx->getSampleRate() );
+
+        audio::BufferRef buffer = mSourceFile->loadBuffer();
+        mBufferPlayerNode = ctx->makeNode( new audio::BufferPlayerNode( buffer ) );
+
+        // audio::Node method -- works
+        mDelay = ctx->makeNode( new audio::DelayNode );
+        mDelay->setDelaySeconds(3  );
+
+        mLowPass = ctx->makeNode( new audio::FilterLowPassNode() );
+        mLowPass->setCutoffFreq( 400 );
+
+        mBufferPlayerNode >> ctx->getOutput();
+        ctx->enable();
+
+//    audio::cocoa::EffectNode method
+//    delay = ctx->makeNode( new audio::cocoa::EffectAudioUnitNode( kAudioUnitSubType_Delay ) );
+//    delay->setParameter(kDelayParam_DelayTime, 1);
+//    lowpass = ctx->makeNode( new audio::cocoa::EffectAudioUnitNode( kAudioUnitSubType_LowPassFilter ) );
+//    lowpass->setParameter( kLowPassParam_CutoffFrequency, 500 );
     }
 
-    void SampleController::draw() {
-        fileToPlay.play(0);
-        const cinder::PolyLine2 poly = drawWave();
-        gl::draw(poly);
+    BufferPlayerNodeRef SampleController::getSampleBufferPlayer() {
+        return mBufferPlayerNode;
     }
 
-
-    PolyLine2 SampleController::drawWave() {
-        int width = 700;
-        int height = 700;
-        // Taken from Cinder-AudioUnit samples :
-        // https://github.com/admsyn/Cinder-AudioUnit/blob/master/samples/auComplexRouting/src/auComplexRoutingApp.cpp
-        PolyLine2f waveform;
-
-        if(!tapBuffer.empty()) {
-            waveform.getPoints().reserve(tapBuffer.size());
-
-            const float xStep = width / (float)tapBuffer.size();
-
-            for(int i = 0; i < tapBuffer.size(); i++) {
-                float x = i * xStep;
-                float y = tapBuffer[i] * (height / 2.f) + (height / 2.f);
-                ci::vec2 newPoint(x, y);
-                std::cout << tapBuffer[i] << std::endl;
-                waveform.push_back(newPoint);
-            }
-        }
-
-        return waveform;
-    }
-
-    void SampleController::update() {
-        tap.getSamples(tapBuffer);
+    WaveformPlot SampleController::getSampleWaveformPlot() {
+        return mWaveformPlot;
     }
 }

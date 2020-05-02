@@ -17,12 +17,12 @@ namespace myapp {
 
 const int kSamples = 8;
 const int kWidth = 800;
-const int kHeight = 600;
+const int kHeight = 700;
 
 void SetUp(App::Settings* settings) {
   settings->setWindowSize(kWidth, kHeight);
     settings->setResizable(false);
-  settings->setTitle("My CS 126 Application");
+  settings->setTitle("Range Based Audio Sampler");
 }
 
 }  // namespace myapp

@@ -3,7 +3,6 @@
 
 # Use Cinder CMake macros.
 get_filename_component(CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../" ABSOLUTE)
-get_filename_component(RUBBERBAND_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../rubberband-lib/" ABSOLUTE)
 include("${CINDER_PATH}/proj/cmake/modules/cinderMakeApp.cmake")
 include("${FinalProject_SOURCE_DIR}/cmake/make_cinder_library.cmake")
 
@@ -27,7 +26,7 @@ ci_make_library(
         SOURCES      ${SOURCE_LIST}
         INCLUDES     "${FinalProject_SOURCE_DIR}/include"
         LIBRARIES
-        BLOCKS       AudioUnit
+        BLOCKS
 )
 
 

@@ -17,7 +17,7 @@ ci_make_app(
     CINDER_PATH ${CINDER_PATH}
     SOURCES     ${SOURCE_LIST}
     LIBRARIES   mylibrary
-    BLOCKS      AudioUnit
+    BLOCKS      Cinder-UI
 )
 
 
