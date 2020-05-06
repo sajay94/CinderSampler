@@ -46,7 +46,28 @@
     
     [X] Implement sample_controller to access and modify a single sample
     
-    [ ] Adjust compression, distortion, gain, reverb, and panning from SampleController
+  - **5/3**
+    [X] Create single original sample and clipped sample buffer players
+    
+    [X] Create logic to take clip sample and copy to each of 16 SampleControllers
+    
+  - **5/4**
+  
+    [X] Create UI for sequencer and use Cinder-UI to control the first numSamples SampleControllers
+    
+    [X] Create UI to adjust each individual SampleController gain and pan
+    
+  - **5/5**
+    
+    [X] LowPass , HighPass UI
+  
+    [ ] Implement logic to export a finished sequence
+    
+    [ ] Create logic and UI to adjust compression, distortion, gain, reverb, and EQ from SampleController
+    
+    [ ] Add logic and UI for effects like delay and pitch 
+        
+    [ ] Add Tests and Debug
     
     
 ---

@@ -14,16 +14,19 @@ using namespace audio;
 namespace myapp {
 
     class AudioBound {
-    public:
         // Holds a position on an audio player
+    public:
         AudioBound();
         void setUp(size_t frame, size_t frames);
+        void reset(size_t frame, size_t frames);
         void setPosition(size_t frame);
         int getXPosition();
+        int getNumFrames();
         void draw();
 
         size_t currentPosition;
         size_t numFrames;
+        bool wasMoved;
         const double kWidgetToWindowRatio = .875;
     };
 }
