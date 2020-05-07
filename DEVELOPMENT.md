@@ -14,13 +14,12 @@
      [X] Create draw functions for guide and dub audio
      
      [X] Create trace function to identify and draw timestamps
-     
-     [ ] Create algorithm to modify a single audio file based on timestamps
+ 
      
      
   - **4/28** 
    
-     IMPORTANT Changing project to Audio Sampler
+        IMPORTANT Changing project to Audio Sampler
     
     [X] Create UI to select portion of sample
     
@@ -60,13 +59,12 @@
   - **5/5**
     
     [X] LowPass , HighPass UI
-  
-    [ ] Implement logic to export a finished sequence -> left unfinished -> can be done manually
-    using QuickTimePlayer.
     
     [X] Add logic and UI for Effect Automation
         
-    [ ] Add Tests and Debug
+    [X] Add Tests for AudioBound and SampleController 
+    
+    [X] Debug
     
     
 ---

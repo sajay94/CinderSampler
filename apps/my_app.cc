@@ -84,7 +84,7 @@ void AudioSampler::draw() {
     drawSequencer();
 }
 
-void AudioSampler::drawAudioPlayer(const Rectf& size, WaveformPlot plot, BufferPlayerNodeRef player) {
+void AudioSampler::drawAudioPlayer(const Rectf& size, WaveformPlot plot, const BufferPlayerNodeRef& player) {
     gl::setMatricesWindow( getWindowSize());
     gl::color( border );
     gl::drawStrokedRect(size);
@@ -188,7 +188,7 @@ void AudioSampler::fileDrop(FileDropEvent event) {
 
 }
 
-void AudioSampler::setUpSample(BufferPlayerNodeRef player, SourceFileRef source, size_t bound_index, string filename) {
+void AudioSampler::setUpSample(const BufferPlayerNodeRef& player, const SourceFileRef& source, size_t bound_index, const string& filename) {
 
     audio::BufferRef sampleBuffer = player->getBuffer();
     sampleBuffer->copyOffset(*sampleBuffer,
@@ -207,7 +207,7 @@ void AudioSampler::setUpSample(BufferPlayerNodeRef player, SourceFileRef source,
         throw exc;
     }
 }
-void AudioSampler::setUpBounds(BufferPlayerNodeRef player){
+void AudioSampler::setUpBounds(const BufferPlayerNodeRef& player){
     if (player == mBufferPlayerNode) {
         auto sampleCtx = audio::Context::master();
         setUpSampleBufferPlayer(sampleCtx);
@@ -262,7 +262,6 @@ void AudioSampler::exportSequence() {
     mExportRecorderNode->setAutoEnabled(true);
     try {
         for (size_t index = 0; index < numSamples; index++) {
-            std::cout << mExportRecorderNode->getRecordedCopy()->getNumFrames() << std::endl;
             samples[index].getSampleBufferPlayer() >> mExportRecorderNode;
             //mExportRecorderNode->setEnabled(true);
             //mExportRecorderNode->disable(samples[index].getSampleBufferPlayer()->getLoopEndTime());
@@ -282,7 +281,6 @@ void AudioSampler::mouseDown(MouseEvent event) {
     }
     if (kSequencerPosition.contains(event.getPos())) {
         int index = (event.getX() - 50) / (getWindowHeight() / kSequenceLimit);
-        std::cout << samples[index].getVolume() << " " << samples[index].getParamVolume() << std::endl;
         if (index < numSamples) {
             updateControls();
             currentSample = index;

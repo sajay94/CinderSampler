@@ -36,9 +36,9 @@ class AudioSampler : public cinder::app::App {
     void draw() override;
 
     //Creates clip of the sample in player and stores it in sample.wav
-    void setUpSample(BufferPlayerNodeRef player, SourceFileRef source, size_t bound_index, string filename);
+    void setUpSample(const BufferPlayerNodeRef& player, const SourceFileRef& source, size_t bound_index, const string& filename);
     // Creates bounds for SampleBufferPlayer
-    void setUpBounds(BufferPlayerNodeRef player);
+    void setUpBounds(const BufferPlayerNodeRef& player);
 
     //Creates the sample Buffer to be played based on sample.wav
     void setUpSampleBufferPlayer(Context* sampleCtx);
@@ -53,7 +53,7 @@ class AudioSampler : public cinder::app::App {
     void exportSequence();
 
     // Draws plot from player at size --> Used for both orginal and sampled audio
-    void drawAudioPlayer(const Rectf& size, WaveformPlot plot, BufferPlayerNodeRef player);
+    void drawAudioPlayer(const Rectf& size, WaveformPlot plot, const BufferPlayerNodeRef& player);
     void drawSequencer();
 
  private:

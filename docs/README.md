@@ -1,5 +1,7 @@
 # Range Based Audio Sampler
 
+![App-Demo](https://user-images.githubusercontent.com/55111487/81249083-cac1b380-8feb-11ea-9da7-37a2329fb028.png)
+
 A Range Based Audio Sampler allows the user to select and audio file, clip it to 
 a desired length, and then sample the clip. Sampling allows the clip to be repeated some n times,
 where the user can specify controls such as volume, pan, and EQ on each of the n samples individually.
