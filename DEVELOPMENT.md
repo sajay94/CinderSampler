@@ -56,16 +56,15 @@
     [X] Create UI for sequencer and use Cinder-UI to control the first numSamples SampleControllers
     
     [X] Create UI to adjust each individual SampleController gain and pan
-    
+     
   - **5/5**
     
     [X] LowPass , HighPass UI
   
-    [ ] Implement logic to export a finished sequence
+    [ ] Implement logic to export a finished sequence -> left unfinished -> can be done manually
+    using QuickTimePlayer.
     
-    [ ] Create logic and UI to adjust compression, distortion, gain, reverb, and EQ from SampleController
-    
-    [ ] Add logic and UI for effects like delay and pitch 
+    [X] Add logic and UI for Effect Automation
         
     [ ] Add Tests and Debug
     

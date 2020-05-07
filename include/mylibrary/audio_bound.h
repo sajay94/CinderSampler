@@ -17,11 +17,12 @@ namespace myapp {
         // Holds a position on an audio player
     public:
         AudioBound();
+        // setups AudioBound with currentPosition frame and numFrames frames
         void setUp(size_t frame, size_t frames);
-        void reset(size_t frame, size_t frames);
         void setPosition(size_t frame);
         int getXPosition();
         int getNumFrames();
+        // draws rectagular bound at current x poistion on respective AudioBufferPlayer
         void draw();
 
         size_t currentPosition;

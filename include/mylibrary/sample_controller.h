@@ -26,10 +26,8 @@ namespace myapp {
             SampleController();
             // Declares the BufferPlayer and WaveformPlot of the sample located at asset
             void setup(const fs::path asset);
-            // Will update the effects based on changes mad to sliders and dials in UI
-            void update();
-            void draw();
 
+            //Getters and setter to modify SampleController based on UI Sliders
             float getVolume();
             void setVolume(float value);
             float getPan();
@@ -38,12 +36,17 @@ namespace myapp {
             void setLowPass(int freq);
             float getHighPass();
             void setHighPass(int freq);
+
+            //Getters and setters to adjust automation for gain and pan
+            float getParamVolume();
+            void setParamVolume(float value);
+            float getParamPan();
+            void setParamPan(float value);
+            void setRampVolume();
+            void setRampPan();
+
             void writeToFile(const fs::path asset);
             BufferPlayerNodeRef getSampleBufferPlayer();
-            BufferRecorderNodeRef getBufferRecorderNode();
-            SourceFileRef getSampleSourceFile();
-            WaveformPlot getSampleWaveformPlot();
-
 
         private:
 
@@ -56,13 +59,16 @@ namespace myapp {
             // This object handles all effects so that settings can differ between samples
             audio::GainNodeRef          mGain;
             audio::Pan2dNodeRef         mPan;
-            audio::DelayNodeRef			mDelay;
             audio::FilterLowPassNodeRef		mLowPass;
             audio::FilterHighPassNodeRef	mHighPass;
 
-            // Using cinder::cocoa to create effects --> less control
-            shared_ptr<EffectAudioUnitNode> delay;
-            shared_ptr<EffectAudioUnitNode> lowpass;
+            float volume = 1.0;
+            float pan = 0.5;
+            int low = 1600;
+            int high = 0;
+            float delay = 0;
+            float finalVolume = 1;
+            float finalPan = 0.5;
 
     };
 

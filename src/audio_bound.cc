@@ -17,11 +17,6 @@ namespace myapp {
         numFrames = frames;
         wasMoved = false;
     }
-    void AudioBound::reset(size_t frame, size_t frames) {
-        currentPosition = frame;
-        numFrames = frames;
-        wasMoved = false;
-    }
     void AudioBound::setPosition(size_t frame) {
         currentPosition = frame;
     }

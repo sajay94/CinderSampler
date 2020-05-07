@@ -29,6 +29,6 @@ void SetUp(App::Settings* settings) {
 
 
 // This is a macro that runs the application.
-CINDER_APP(myapp::AudioAligner,
+CINDER_APP(myapp::AudioSampler,
            RendererGl(RendererGl::Options().msaa(myapp::kSamples)),
            myapp::SetUp)

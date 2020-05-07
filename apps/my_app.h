@@ -21,11 +21,13 @@ using namespace audio::cocoa;
 
 namespace myapp {
 
-class AudioAligner : public cinder::app::App {
+class AudioSampler : public cinder::app::App {
  public:
-    AudioAligner();
+    //Creates BufferPlayer from default file;
+    AudioSampler();
+    //Creates Cinder-UI elements which update respective private floats
     void setup() override;
-    void update() override;
+    //Used to set the BufferPlayer to the dropped file;
     void fileDrop( FileDropEvent event ) override;
     void keyDown( KeyEvent event ) override;
     void mouseDown( MouseEvent event ) override;
@@ -33,19 +35,26 @@ class AudioAligner : public cinder::app::App {
     void mouseUp( MouseEvent event ) override;
     void draw() override;
 
+    //Creates clip of the sample in player and stores it in sample.wav
     void setUpSample(BufferPlayerNodeRef player, SourceFileRef source, size_t bound_index, string filename);
+    // Creates bounds for SampleBufferPlayer
     void setUpBounds(BufferPlayerNodeRef player);
+
+    //Creates the sample Buffer to be played based on sample.wav
     void setUpSampleBufferPlayer(Context* sampleCtx);
+    // Creates 16 SampleControllers based on sample.wav
     void setUpSequencer();
+    // Sets all UI variables to the values stored in SampleController. Called to show that SampleControllers controlls
     void setControls();
+    // Used to update the current SampleController when some Cinder-UI element is activated
+    void updateControls();
+    // Used to add automation just before playing
+    void updateAutomation(size_t index);
     void exportSequence();
 
     // Draws plot from player at size --> Used for both orginal and sampled audio
     void drawAudioPlayer(const Rectf& size, WaveformPlot plot, BufferPlayerNodeRef player);
     void drawSequencer();
-
-    // Used to quickly load mUi default from json
-    fs::path getSaveLoadPath();
 
  private:
 
@@ -56,6 +65,7 @@ class AudioAligner : public cinder::app::App {
     };
 
     Stage currentStage = Clip;
+
     // out files
     const string outPath = "/Users/family/Cinder/Projects/final-project-sajay94-sampler/assets/";
 
@@ -63,23 +73,40 @@ class AudioAligner : public cinder::app::App {
     const Rectf kAudioPosition = Rectf(50, 100, 750, 200);
     const Rectf kSamplePosition = Rectf(50, 250, 750, 350);
     const Rectf kSequencerPosition = Rectf(50, 400, 750, 450);
-    const float kWindowToWidgetRatio = float(8/7);
 
+    // For coloring borders and boxes
+    Color border = Color( 0, 1, 0);
+    Color currentColor = Color( 0, .5, .2);
+    Color lightBlue = Color( 0, 0, 1);
+    Color darkBlue = Color( 0, 0, .2);
+
+    int numSamples = 0;
+    // Useful constansts
+    const int kSequenceLimit = 16;
+    const float kWindowToWidgetRatio = float(8/7);
+    const int kPaddedWidth = 700;
+    const float kBoxSize = float(kPaddedWidth) / kSequenceLimit;
+    const int kControlsYPosition = 550;
+
+    // Tied to respective Cinder-UI sliders. Changes made to thes variables affect the current SampleController
     SuperCanvasRef mUi;
     SuperCanvasRef mUiControls;
-    float volume = 0.5;
+    SuperCanvasRef mUiAutomation;
+    float volume = 1;
     float pan = 0.5;
-    float rev = 0.5;
     int low = 1600;
     int high = 0;
-    int numSamples = 0;
-    int kSequenceLimit = 16;
+    float finalVolume = 1;
+    float finalPan = 0.5;
+
+
 
     // For the base sample that the user drags in
     BufferPlayerNodeRef mBufferPlayerNode;
     SourceFileRef mSourceFile;
     WaveformPlot mWaveformPlot;
 
+    // For the clipped sample created from the original
     BufferPlayerNodeRef mSampleBufferPlayerNode;
     BufferRecorderNodeRef mExportRecorderNode;
     SourceFileRef mSampleSourceFile;
@@ -88,7 +115,6 @@ class AudioAligner : public cinder::app::App {
     // Objects which allow the user to set the bounds of the sample
     myapp::AudioBound start = AudioBound();
     myapp::AudioBound end = AudioBound();
-
     // Objects which allow the user to fine tune the bounds of the sample
     myapp::AudioBound sampleStart = AudioBound();
     myapp::AudioBound sampleEnd = AudioBound();

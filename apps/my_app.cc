@@ -23,7 +23,7 @@ using namespace std;
 using namespace reza::ui;
 using namespace myapp;
 
-AudioAligner::AudioAligner() {
+AudioSampler::AudioSampler() {
     auto ctx = audio::Context::master();
 
     // create a SourceFile and set its output samplerate to match the Context.
@@ -46,15 +46,14 @@ AudioAligner::AudioAligner() {
     ctx->enable();
 }
 
-void AudioAligner::setup() {
+void AudioSampler::setup() {
     cinder::gl::enableDepthWrite();
     cinder::gl::enableDepthRead();
 
 
     mUi = SuperCanvas::create( "Sequencer" , getWindow());
     mUi->addSlideri("Num Samples", &numSamples, 1, kSequenceLimit);
-
-    mUi->setOrigin(vec2(0, 450));
+    mUi->setOrigin(vec2(0, kControlsYPosition - 100));
 
     mUiControls = SuperCanvas::create( "Controls" , getWindow());
     mUiControls->addSliderf("Volume", &volume);
@@ -63,17 +62,18 @@ void AudioAligner::setup() {
     mUiControls->addSpacer();
     mUiControls->addSlideri( "LowPass", &low, 0, 1600 );
     mUiControls->addSlideri( "HighPass", &high, 0, 1600 );
+    mUiControls->setOrigin(vec2(0, kControlsYPosition));
 
-    mUiControls->setOrigin(vec2(0, 550));
+    mUiAutomation = SuperCanvas::create( "Automation" , getWindow());
+    mUiAutomation->addSliderf("Volume", &finalVolume);
+    mUiAutomation->addSliderf("Pan", &finalPan, 0, 1.0, Sliderf::Format().crossFader() );
+    mUiAutomation->setOrigin(vec2(getWindowWidth() / 2, kControlsYPosition));
 
 }
 
-void AudioAligner::draw() {
-
-    //mUi->load( getSaveLoadPath() );
+void AudioSampler::draw() {
     gl::clear();
     gl::enableAlphaBlending();
-
 
     drawAudioPlayer(kAudioPosition, mWaveformPlot, mBufferPlayerNode);
     bounds[0].draw(), bounds[1].draw();
@@ -84,94 +84,96 @@ void AudioAligner::draw() {
     drawSequencer();
 }
 
-void AudioAligner::drawAudioPlayer(const Rectf& size, WaveformPlot plot, BufferPlayerNodeRef player) {
+void AudioSampler::drawAudioPlayer(const Rectf& size, WaveformPlot plot, BufferPlayerNodeRef player) {
     gl::setMatricesWindow( getWindowSize());
-    gl::color( ColorA( 0, 1, 0, 0.7f ) );
+    gl::color( border );
     gl::drawStrokedRect(size);
     plot.load( player->getBuffer(), size );
     plot.draw(size.getX1(), size.getY1());
 
     // draw the current play position
     float readPos = (1.0/kWindowToWidgetRatio)* (float)getWindowWidth() * player->getReadPosition() / player->getNumFrames();
-    gl::color( ColorA( 0, 1, 0, 0.7f ) );
+    gl::color( border );
     gl::drawSolidRect( Rectf( readPos - 2, 0, readPos + 2, 100 ) );
 
 }
-void AudioAligner::drawSequencer() {
+void AudioSampler::drawSequencer() {
     gl::setMatricesWindow( getWindowSize());
-    gl::color( ColorA( 0, 1, 0, 0.7f ) );
+    gl::color( border);
     gl::drawStrokedRect(kSequencerPosition);
     for (size_t range = 0; range < kSequenceLimit; range++) {
         if (range < numSamples) {
             if (range == currentSample ) {
-                gl::color( ColorA( 0, .5, .2, 0.7f ) );
+                gl::color( currentColor);
             } else {
-                gl::color( ColorA( 0, 0, 1, 0.7f ) );
+                gl::color( lightBlue);
             }
         } else {
-            gl::color( ColorA( 0, 0, 1, 0.2f ) );
+            gl::color( darkBlue);
         }
-
-        const Rectf kSequencerPosition = Rectf((43.75 * range) + 50, 405, (43.75 * range) + 90, 445);
+        int x1 = (kBoxSize * range) + 50, y1 =  kPaddedWidth / 2 + 55;
+        const Rectf kSequencerPosition = Rectf(x1, y1, x1 + 40, y1 + 40);
         gl::drawSolidRect(kSequencerPosition);
     }
 }
 
-void AudioAligner::keyDown(KeyEvent event) {
-    if( event.getCode() == KeyEvent::KEY_SPACE ) {
-        if (currentStage == Clip) {
-            if( mBufferPlayerNode->isEnabled() )
+void AudioSampler::keyDown(KeyEvent event) {
+    if (currentStage == Clip) {
+        if (event.getCode() == KeyEvent::KEY_SPACE) {
+            if (mBufferPlayerNode->isEnabled())
                 mBufferPlayerNode->stop();
             else {
                 mBufferPlayerNode->setLoopBegin(bounds[0].currentPosition);
                 mBufferPlayerNode->start(mBufferPlayerNode->getLoopBeginTime());
             }
-        } else {
+        } else if( event.getCode() == KeyEvent::KEY_c ) {
+            currentSample++;
+            setUpSample(mBufferPlayerNode, mSourceFile, 0, "sample.wav");
+            setUpBounds(mBufferPlayerNode);
+            currentStage = Sample;
+        }
+    } else if (currentStage == Sample) {
+        if (mBufferPlayerNode->isEnabled())
+            mBufferPlayerNode->stop();
+        if (event.getCode() == KeyEvent::KEY_SPACE) {
             if( mSampleBufferPlayerNode->isEnabled() )
                 mSampleBufferPlayerNode->stop();
             else {
                 mSampleBufferPlayerNode->start(mSampleBufferPlayerNode->getLoopBeginTime());
             }
-        }
-    } else if( event.getCode() == KeyEvent::KEY_c ) {
-        if( mBufferPlayerNode->isEnabled() )
-            mBufferPlayerNode->stop();
-        if (currentStage == Clip) {
-            currentSample++;
-            setUpSample(mBufferPlayerNode, mSourceFile, 0, "sample.wav");
-            setUpBounds(mBufferPlayerNode);
-        } else {
+        } else if( event.getCode() == KeyEvent::KEY_c ) {
             setUpSample(mSampleBufferPlayerNode, mSampleSourceFile, 2, "sample.wav");
             setUpBounds(mSampleBufferPlayerNode);
+        } else if( event.getCode() == KeyEvent::KEY_s ) {
+            if ( mSampleBufferPlayerNode->isEnabled() )
+                mSampleBufferPlayerNode->stop();
+            setUpSequencer();
         }
-        currentStage = Sample;
-    } else if( event.getCode() == KeyEvent::KEY_s ) {
-        if( mBufferPlayerNode->isEnabled() )
-            mBufferPlayerNode->stop();
-        if ( mSampleBufferPlayerNode->isEnabled() )
-            mSampleBufferPlayerNode->stop();
-        setUpSequencer();
-    } else if( event.getCode() == KeyEvent::KEY_p ) {
-        size_t index = 0;
-        samples[index].getSampleBufferPlayer()->start();
-        index++;
-        while (index < numSamples) {
-            if (!samples[index-1].getSampleBufferPlayer()->isEnabled()) {
-                samples[index].getSampleBufferPlayer()->start();
-                index++;
+    } else {
+        if( event.getCode() == KeyEvent::KEY_p ) {
+            size_t index = 1;
+            samples[0].getSampleBufferPlayer()->start();
+            updateControls();
+            for (size_t sample = 0; sample < numSamples; sample++)
+                updateAutomation(sample);
+            while (index < numSamples) {
+                if (!samples[index-1].getSampleBufferPlayer()->isEnabled()) {
+                    samples[index].getSampleBufferPlayer()->start();
+                    index++;
+                }
             }
-        }
-    } else if( event.getCode() == KeyEvent::KEY_e ) {
-        if (currentStage == Sequence) {
-            //exportSequence();
-            for (size_t sample = 0; sample < numSamples; sample++) {
-                samples[sample].writeToFile(outPath + "2/out2" + to_string(sample) + ".wav");
+        } else if( event.getCode() == KeyEvent::KEY_e ) {
+            if (currentStage == Sequence) {
+                //exportSequence();
+                for (size_t sample = 0; sample < numSamples; sample++) {
+                    samples[sample].writeToFile(outPath + "out" + to_string(sample) + ".wav");
+                }
             }
         }
     }
 }
 
-void AudioAligner::fileDrop(FileDropEvent event) {
+void AudioSampler::fileDrop(FileDropEvent event) {
     try {
         mSourceFile.reset();
         mSourceFile = audio::load( loadFile( event.getFile( 0 ) ) );
@@ -179,16 +181,15 @@ void AudioAligner::fileDrop(FileDropEvent event) {
         mBufferPlayerNode->loadBuffer( mSourceFile );
         start.setUp(0, mBufferPlayerNode->getNumFrames());
         end.setUp(mBufferPlayerNode->getNumFrames(), mBufferPlayerNode->getNumFrames());
-        //mBufferPlayerNode->setLoopEnabled();
-
         mWaveformPlot.load( mBufferPlayerNode->getBuffer(), getWindowBounds() );
+        currentStage = Clip;
     } catch( Exception &exc ) {
         throw exc;
     }
 
 }
 
-void AudioAligner::setUpSample(BufferPlayerNodeRef player, SourceFileRef source, size_t bound_index, string filename) {
+void AudioSampler::setUpSample(BufferPlayerNodeRef player, SourceFileRef source, size_t bound_index, string filename) {
 
     audio::BufferRef sampleBuffer = player->getBuffer();
     sampleBuffer->copyOffset(*sampleBuffer,
@@ -207,12 +208,12 @@ void AudioAligner::setUpSample(BufferPlayerNodeRef player, SourceFileRef source,
         throw exc;
     }
 }
-void AudioAligner::setUpBounds(BufferPlayerNodeRef player){
+void AudioSampler::setUpBounds(BufferPlayerNodeRef player){
     if (player == mBufferPlayerNode) {
         auto sampleCtx = audio::Context::master();
         setUpSampleBufferPlayer(sampleCtx);
         size_t newSampleNumFrames = mSampleBufferPlayerNode->getNumFrames();
-        // sample audio_bound setup
+
         sampleStart.setUp(0, newSampleNumFrames);
         bounds.push_back(sampleStart);
         sampleEnd.setUp(newSampleNumFrames, newSampleNumFrames);
@@ -222,13 +223,13 @@ void AudioAligner::setUpBounds(BufferPlayerNodeRef player){
         sampleCtx->uninitializeNode(mSampleBufferPlayerNode);
         setUpSampleBufferPlayer(sampleCtx);
         size_t newSampleNumFrames = mSampleBufferPlayerNode->getNumFrames();
-        // sample audio_bound reset
-        bounds[2].reset(0, newSampleNumFrames);
-        bounds[3].reset(newSampleNumFrames, newSampleNumFrames);
+
+        bounds[2].setUp(0, newSampleNumFrames);
+        bounds[3].setUp(newSampleNumFrames, newSampleNumFrames);
     }
 }
 
-void AudioAligner::setUpSampleBufferPlayer(Context* sampleCtx) {
+void AudioSampler::setUpSampleBufferPlayer(Context* sampleCtx) {
     // create a SourceFile and set its output samplerate to match the Context.
     mSampleSourceFile = audio::load( app::loadAsset("sample.wav"), sampleCtx->getSampleRate() );
 
@@ -240,7 +241,7 @@ void AudioAligner::setUpSampleBufferPlayer(Context* sampleCtx) {
     sampleCtx->enable();
 }
 
-void AudioAligner::setUpSequencer() {
+void AudioSampler::setUpSequencer() {
     for (size_t sample = 0; sample < kSequenceLimit; sample++) {
         auto newSample = SampleController();
         setUpSample(mSampleBufferPlayerNode, mSampleSourceFile, 2, "samples/out" + to_string(sample) + ".wav");
@@ -252,7 +253,7 @@ void AudioAligner::setUpSequencer() {
     currentStage = Sequence;
 }
 
-void AudioAligner::exportSequence() {
+void AudioSampler::exportSequence() {
     fs::path exportPath = outPath + "export.wav";
     audio::BufferRef exportRef;
     auto ctx = audio::Context::master();
@@ -261,11 +262,6 @@ void AudioAligner::exportSequence() {
     mExportRecorderNode->setAutoEnabled(true);
     try {
         for (size_t index = 0; index < numSamples; index++) {
-//        for (size_t index = 0; index < temp->getNumFrames(); index++) {
-//            *compositeBuffer = *temp;
-//            temp++;
-//            &compositeBuffer++;
-//        }
             std::cout << mExportRecorderNode->getRecordedCopy()->getNumFrames() << std::endl;
             samples[index].getSampleBufferPlayer() >> mExportRecorderNode;
             //mExportRecorderNode->setEnabled(true);
@@ -276,34 +272,26 @@ void AudioAligner::exportSequence() {
         throw exc;
     }
 //    mExportRecorderNode->writeToFile(exportPath);
-    try {
-        audio::TargetFileRef target = audio::TargetFile::create( exportPath,
-                                                                 mSampleSourceFile->getSampleRate(), mSampleSourceFile->getNumChannels() );
-        std::cout << mExportRecorderNode->getRecordedCopy().get()->getNumFrames() << " " << mExportRecorderNode->getNumFrames() << std::endl;
-        target->write(mExportRecorderNode->getRecordedCopy().get(), 512);
-
-    }
-    catch( audio::AudioFileExc &exc ) {
-        throw exc;
-    }
 }
 
-void AudioAligner::mouseDown(MouseEvent event) {
+void AudioSampler::mouseDown(MouseEvent event) {
     for (AudioBound &bound : bounds) {
         if (abs(event.getX() - bound.getXPosition()) < 5) {
             bound.wasMoved = true;
         }
     }
     if (kSequencerPosition.contains(event.getPos())) {
-        int index = (event.getX() - 50) / (700 / kSequenceLimit);
+        int index = (event.getX() - 50) / (getWindowHeight() / kSequenceLimit);
+        std::cout << samples[index].getVolume() << " " << samples[index].getParamVolume() << std::endl;
         if (index < numSamples) {
+            updateControls();
             currentSample = index;
             setControls();
         }
     }
 }
 
-void AudioAligner::mouseDrag(MouseEvent event) {
+void AudioSampler::mouseDrag(MouseEvent event) {
     for (AudioBound &bound : bounds) {
         if (bound.wasMoved) {
             size_t frame = event.getX() * bound.getNumFrames() / (kWindowToWidgetRatio * getWindowWidth());
@@ -314,59 +302,69 @@ void AudioAligner::mouseDrag(MouseEvent event) {
         mBufferPlayerNode->seek( mBufferPlayerNode->getNumFrames() * event.getX() / getWindowWidth() );
 }
 
-void AudioAligner::mouseUp(MouseEvent event) {
-    for (size_t bound_ind = 0; bound_ind < bounds.size(); bound_ind++) {
-        if (bounds[bound_ind].wasMoved) {
-            size_t frame = event.getX() * bounds[bound_ind].getNumFrames() / (kWindowToWidgetRatio * getWindowWidth());
-            bounds[bound_ind].setPosition(frame);
-            if (bound_ind % 2 == 0) {
-                if (currentSample < 0) {
-                    mBufferPlayerNode->setLoopBegin(bounds[bound_ind].currentPosition);
+void AudioSampler::mouseUp(MouseEvent event) {
+    for (size_t index = 0; index < bounds.size(); index++) {
+        if (bounds[index].wasMoved) {
+            size_t frame = event.getX() * bounds[index].getNumFrames() / (kWindowToWidgetRatio * getWindowWidth());
+            bounds[index].setPosition(frame);
+            if (currentStage == Clip) {
+                if (index % 2 == 0) {
+                    mBufferPlayerNode->setLoopBegin(bounds[index].currentPosition);
                 } else {
-                    mSampleBufferPlayerNode->setLoopBegin(bounds[bound_ind].currentPosition);
+                    mBufferPlayerNode->setLoopEnd(bounds[index].currentPosition);
                 }
-            } else {
-                if (currentSample < 0) {
-                    mBufferPlayerNode->setLoopEnd(bounds[bound_ind].currentPosition);
+            } else if (currentStage == Sample) {
+                if (index % 2 == 0) {
+                    mSampleBufferPlayerNode->setLoopBegin(bounds[index].currentPosition);
                 } else {
-                    mSampleBufferPlayerNode->setLoopEnd(bounds[bound_ind].currentPosition);
+                    mSampleBufferPlayerNode->setLoopEnd(bounds[index].currentPosition);
                 }
             }
-            bounds[bound_ind].wasMoved = false;
+            bounds[index].wasMoved = false;
         }
     }
 }
 
-void AudioAligner::update() {
-    if (currentStage == Sequence) {
-        if (volume != samples[currentSample].getVolume()) {
-            samples[currentSample].setVolume(volume);
-        } else if (pan != samples[currentSample].getPan()) {
-            samples[currentSample].setPan(pan);
-        } else if (low != samples[currentSample].getLowPass()) {
-            samples[currentSample].setLowPass(low);
-        } else if (high != samples[currentSample].getHighPass()) {
-            samples[currentSample].setHighPass(high);
-        }
-
-    }
-}
-
-void AudioAligner::setControls() {
+void AudioSampler::setControls() {
     volume = samples.at(currentSample).getVolume();
     pan = samples.at(currentSample).getPan();
     low = samples.at(currentSample).getLowPass();
     high = samples.at(currentSample).getHighPass();
+    finalVolume = samples.at(currentSample).getParamVolume();
+    finalPan = samples.at(currentSample).getParamPan();
 }
 
-// Used to quickly load mUi default from json
-//fs::path AudioAligner::getSaveLoadPath()
-//{
-//    fs::path path = getAssetPath( "" );
-//    path += "/" + mUi->getName() + ".json";
-//    return path;
-//}
+void AudioSampler::updateControls() {
+    if (volume != samples[currentSample].getVolume()) {
+        samples[currentSample].setVolume(volume);
+    }
+    if (finalVolume != samples[currentSample].getParamVolume() || volume != finalVolume) {
+        samples[currentSample].setParamVolume(finalVolume);
+    }
+    if (pan != samples[currentSample].getPan()) {
+        samples[currentSample].setPan(pan);
+    }
+    if (finalPan != samples[currentSample].getParamPan() || pan != finalPan) {
+        samples[currentSample].setParamPan(finalPan);
+    }
+    if (low != samples[currentSample].getLowPass()) {
+        samples[currentSample].setLowPass(low);
+    }
+    if (high != samples[currentSample].getHighPass()) {
+        samples[currentSample].setHighPass(high);
+    }
+}
 
+void AudioSampler::updateAutomation(size_t index) {
+    auto sample = samples[index];
+    if (sample.getParamVolume() != sample.getVolume()) {
+        sample.setRampVolume();
+    }
+    if (sample.getParamPan() != sample.getPan()) {
+        sample.setRampPan();
+    }
+
+}
 
 
 }  // namespace myapp

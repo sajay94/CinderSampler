@@ -30,67 +30,51 @@ namespace myapp {
         mBufferPlayerNode = ctx->makeNode( new audio::BufferPlayerNode( buffer ) );
 
         mGain = ctx->makeNode( new audio::GainNode );
-        mGain->setValue(1.0);
+        mGain->setValue(volume);
 
         mPan = ctx->makeNode( new audio::Pan2dNode );
-        mPan->setPos(0);
+        mPan->setPos(pan);
 
-        mDelay = ctx->makeNode( new audio::DelayNode );
-        mDelay->setDelaySeconds(0  );
 
         mLowPass = ctx->makeNode( new audio::FilterLowPassNode() );
-        mLowPass->setCutoffFreq(1600);
+        mLowPass->setCutoffFreq(low);
 
         mHighPass = ctx->makeNode( new audio::FilterHighPassNode() );
-        mHighPass->setCutoffFreq(0);
+        mHighPass->setCutoffFreq(high);
 
         mBufferPlayerNode >> mGain >> mPan >> mLowPass >> mHighPass >> ctx->getOutput();
         ctx->enable();
 
-//    audio::cocoa::EffectNode method
-//    delay = ctx->makeNode( new audio::cocoa::EffectAudioUnitNode( kAudioUnitSubType_Delay ) );
-//    delay->setParameter(kDelayParam_DelayTime, 1);
-//    lowpass = ctx->makeNode( new audio::cocoa::EffectAudioUnitNode( kAudioUnitSubType_LowPassFilter ) );
-//    lowpass->setParameter( kLowPassParam_CutoffFrequency, 500 );
     }
 
     BufferPlayerNodeRef SampleController::getSampleBufferPlayer() {
         return mBufferPlayerNode;
     }
 
-    BufferRecorderNodeRef SampleController::getBufferRecorderNode() {
-        return mRecorderNode ;
-    }
-
-    WaveformPlot SampleController::getSampleWaveformPlot() {
-        return mWaveformPlot;
-    }
-
-    SourceFileRef SampleController::getSampleSourceFile() {
-        return mSourceFile;
-    }
-
     float SampleController::getVolume() {
-        return mGain->getValue();
+        return volume;
     }
 
     void SampleController::setVolume(float value) {
-        mGain->setValue(value);
+        volume = value;
+        mGain->setValue(volume);
     }
 
     float SampleController::getPan() {
-        return mPan->getPos();
+        return pan;
     }
 
     void SampleController::setPan(float value) {
+        pan = value;
         mPan->setPos(value);
     }
 
     float SampleController::getLowPass() {
-        return mLowPass->getCutoffFreq();
+        return low;
     }
 
     void SampleController::setLowPass(int freq) {
+        low = freq;
         mLowPass->setCutoffFreq(freq);
     }
 
@@ -100,6 +84,34 @@ namespace myapp {
 
     void SampleController::setHighPass(int freq) {
         mHighPass->setCutoffFreq(freq);
+    }
+
+    float SampleController::getParamVolume() {
+        return finalVolume;
+    }
+
+    void SampleController::setParamVolume(float value) {
+        finalVolume = value;
+    }
+
+    void SampleController::setRampVolume() {
+        auto options = audio::Param::Options().rampFn( &audio::rampOutQuad );
+        mGain->getParam()->reset();
+        mGain->getParam()->applyRamp(volume, finalVolume, 1/mBufferPlayerNode->getLoopEndTime());
+    }
+
+    float SampleController::getParamPan() {
+        return finalPan;
+    }
+
+    void SampleController::setParamPan(float value) {
+        finalPan = value;
+    }
+
+    void SampleController::setRampPan() {
+        auto options = audio::Param::Options().rampFn( &audio::rampOutQuad );
+        mPan->getParamPos()->reset();
+        mPan->getParamPos()->applyRamp(pan, finalPan, 1/mBufferPlayerNode->getLoopEndTime());
     }
 
     void SampleController::writeToFile(const fs::path asset) {
