@@ -60,8 +60,8 @@ void AudioSampler::setup() {
     mUiControls->addSliderf( "Pan", &pan, 0, 1.0, Sliderf::Format().crossFader() );
     mUiControls->addSpacer();
     mUiControls->addSpacer();
-    mUiControls->addSlideri( "LowPass", &low, 0, 1600 );
-    mUiControls->addSlideri( "HighPass", &high, 0, 1600 );
+    mUiControls->addSlideri( "LowPass", &low, 0, low );
+    mUiControls->addSlideri( "HighPass", &high, 0, low );
     mUiControls->setOrigin(vec2(0, kControlsYPosition));
 
     mUiAutomation = SuperCanvas::create( "Automation" , getWindow());
@@ -177,10 +177,9 @@ void AudioSampler::fileDrop(FileDropEvent event) {
     try {
         mSourceFile.reset();
         mSourceFile = audio::load( loadFile( event.getFile( 0 ) ) );
-
         mBufferPlayerNode->loadBuffer( mSourceFile );
-        start.setUp(0, mBufferPlayerNode->getNumFrames());
-        end.setUp(mBufferPlayerNode->getNumFrames(), mBufferPlayerNode->getNumFrames());
+        bounds[0].setUp(0, mBufferPlayerNode->getNumFrames());
+        bounds[1].setUp(mBufferPlayerNode->getNumFrames(), mBufferPlayerNode->getNumFrames());
         mWaveformPlot.load( mBufferPlayerNode->getBuffer(), getWindowBounds() );
         currentStage = Clip;
     } catch( Exception &exc ) {
@@ -250,6 +249,7 @@ void AudioSampler::setUpSequencer() {
         newSample.setPan(pan);
         samples.push_back(newSample);
     }
+    setControls();
     currentStage = Sequence;
 }
 

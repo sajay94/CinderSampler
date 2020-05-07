@@ -34,5 +34,9 @@ namespace myapp {
     int AudioBound::getNumFrames() {
         return numFrames;
     }
+
+    int AudioBound::getCurrentFrame() {
+        return currentPosition;
+    }
 }
 

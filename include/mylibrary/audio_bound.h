@@ -21,11 +21,12 @@ namespace myapp {
         void setUp(size_t frame, size_t frames);
         void setPosition(size_t frame);
         int getXPosition();
+        int getCurrentFrame();
         int getNumFrames();
-        // draws rectagular bound at current x poistion on respective AudioBufferPlayer
+        // draws rectagular bound at current x position on respective AudioBufferPlayer
         void draw();
 
-        size_t currentPosition;
+        size_t currentPosition = 0;
         size_t numFrames;
         bool wasMoved;
         const double kWidgetToWindowRatio = .875;
